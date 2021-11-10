@@ -134,14 +134,60 @@ export default class ViajesHelperMethods {
             let response = await fetch(`http://${process.env.REACT_APP_EP}/viaje/misviajes/director/${directorId}`, config);
             response = await response.json();
             response.forEach(this.mapRutas);
+            this.createContainerNotification(this.getNotification(response, true));
             return response;
         }
         catch (error) {
             throw error;
         }
     }
+    
+    getNotification = (response, isDirector) => {
 
-    getViajes = async (cancelToken) => {
+        let count = 0;
+
+        if(isDirector){
+            for (let item of response) {
+                if(item.id_estatus == 0) {
+                    count++;
+                }
+            }
+        }
+        else {
+            for (let item of response) {
+                if(item.id_estatus != -1 && item.id_estatus != 4 && item.id_estatus != 0) {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    createContainerNotification = (length) => {
+
+        if(document.getElementById('notificationCounter') === null && length != 0){
+            let li = document.getElementById('li-viajes');
+            li.style.display = 'flex';
+            li.style.alignItems = 'center';
+            li.style.gap = '1rem';
+        
+            let divContainer = document.createElement('div');
+            divContainer.id = 'notificationCounter';
+            divContainer.style.padding = '0.3rem 0.5rem';
+            divContainer.style.backgroundColor = '#e04046';
+            divContainer.style.borderRadius = '0.5rem';
+            divContainer.style.color = '#FFFFFF';
+            divContainer.style.fontWeight = '700';
+            divContainer.innerHTML = `<p style='margin : 0' id='pNotification'>${length}</p>`;
+            li.appendChild(divContainer);
+        }
+        else if(length != 0) {
+            document.getElementById('pNotification').innerText = length.toString();
+        }
+    }
+    
+    getViajes = async (cancelToken, isAdministrator = false) => {
         try {
             const Auth = new AuthHelperMethods(this.domain);
             let config = {
@@ -159,7 +205,13 @@ export default class ViajesHelperMethods {
       
             let response = await fetch(`http://${process.env.REACT_APP_EP}/viaje/todos`, config);
             response = await response.json();
+            console.log(response);
             response.forEach(this.mapRutas);
+
+            if(isAdministrator){
+                this.createContainerNotification(this.getNotification(response,false));
+            }
+
             return response.filter(trip => trip.id_estatus !== statusEnum.SOLICITED);
         }
         catch (error) {

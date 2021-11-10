@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import clsx from 'clsx';
 import { useTheme } from '@material-ui/core/styles';
 import Drawer from '@material-ui/core/Drawer';
@@ -20,6 +20,7 @@ import { Usuarios } from '../usuarios/index';
 import Vehiculos from '../vehiculos/Vehiculos';
 import MantenimientoVehiculo from '../vehiculos/MantenimientoVehiculo';
 import { rolesEnum } from '../../enums/RolesEnum';
+import ViajesHelperMethods from '../../helpers/ViajesHelperMethods';
 
 import './inicio.css'
 import ViajeSolicitante from '../viajes/ViajesSolicitante';
@@ -31,12 +32,13 @@ export default function PersistentDrawerLeft({ classes, mobile }) {
   const open = true;
   const Auth = new AuthHelperMethods(process.env.REACT_APP_EP);  
 
+  const ViajesHelper = new ViajesHelperMethods(process.env.REACT_APP_EP);
+
   const history = useHistory();
   let params = useParams();
 
   const [ usuario, setUsuario ] = useState(null);
   const [ navOption, setNavOption] = useState(params.pagina);
-
   
   useEffect(()=>{
     let signal = axios.CancelToken.source();
@@ -45,6 +47,12 @@ export default function PersistentDrawerLeft({ classes, mobile }) {
       try {
         const response = await UserHelperMethodsInstance.buscarUsuario(localStorage.getItem('usuario'), signal.token)
         setUsuario(response);
+
+          if (response.rol === rolesEnum.ADMINISTRADOR) {
+            await ViajesHelper.getViajes(signal.token, true);
+          }
+
+
         if (response) {
           if ((Number(response.inicio_sesion) === 0) && false) {
             history.push('/reiniciar-contraseña');
@@ -60,8 +68,7 @@ export default function PersistentDrawerLeft({ classes, mobile }) {
     return ()=>{signal.cancel('Api is being canceled');}
   },[history]);
   
-  const selectNavOption = (option) => {
-    
+  const selectNavOption = (option) => {   
     if(option === 'logout') {
       Auth.logout(); 
       history.push('/');
@@ -69,7 +76,7 @@ export default function PersistentDrawerLeft({ classes, mobile }) {
     else {
       history.push(`/home/${option}`);
       setNavOption(option);
-    }    
+    }
   } 
 
   const getComponent = (pagina, classes, mobile) => {
@@ -144,7 +151,7 @@ export default function PersistentDrawerLeft({ classes, mobile }) {
           {usuario &&
           <ListItem button key={'Viajes'} selected={navOption === 'viaje'} onClick={()=>{selectNavOption('viaje')}}>
             <ListItemIcon><CommuteIcon onClick={()=>{history.push('/home/viaje')}}/></ListItemIcon>
-            <ListItemText primary={'Viajes'}/>
+            <ListItemText primary={'Viajes'} id='li-viajes'/>
           </ListItem>
           }
         </List>
